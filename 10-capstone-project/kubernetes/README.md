@@ -85,9 +85,9 @@ kubectl -n skillfyme create secret generic skillfyme-secrets \
   --from-literal=FROM_EMAIL=noreply@skillfyme.com
 
 kubectl -n skillfyme create configmap postgres-init --from-file=init.sql=docker-compose/postgres-init.sql
-kubectl -n skillfyme create configmap mongo-init --from-file=$HOME/Project-1-LearnSphere_Skillfyme/scripts/mongo-init.js
+kubectl -n skillfyme create configmap mongo-init --from-file=mongo-init.js=kubernetes/mongo-init.js
 ```
-The Postgres seed uses the corrected script from [docker-compose/](../docker-compose).
+Seed scripts: corrected Postgres script from [docker-compose/](../docker-compose), MongoDB script [mongo-init.js](./mongo-init.js) copied from the project.
 
 **5. Deploy**
 ```bash

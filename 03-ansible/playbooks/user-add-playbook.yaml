@@ -1,0 +1,13 @@
+---
+- name: Ansible playbook to add user
+  hosts: kslave1
+  become: yes
+  tasks:
+    - name: Adding user to node
+      user:
+        name: joe
+        comment: joe s
+        uid: 1040
+        group: ubuntu
+
+# Change the user name as needed and check on the target machine: cat /etc/passwd

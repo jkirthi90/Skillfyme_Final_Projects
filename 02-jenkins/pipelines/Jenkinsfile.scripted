@@ -1,0 +1,13 @@
+// Runs on the agent labelled "test node1". Use plain `node {` to run on the controller instead.
+node("test node1") {
+    stage('Git clone') {
+    sh 'rm -rf *'
+    sh 'git clone -b maven https://github.com/madandevops11/myfirstrepo.git'
+    }
+    stage('Build') {
+    sh 'cd myfirstrepo/my-app && mvn clean && mvn package'
+    }
+    stage('Test') {
+    sh 'cd myfirstrepo/my-app && java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+    }
+}

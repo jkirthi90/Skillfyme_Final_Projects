@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Container image exports
+*.tar
+
+# Secrets and local config
+.env
+*.pem
+kubeconfig
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

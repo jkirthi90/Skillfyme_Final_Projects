@@ -1,0 +1,13 @@
+---
+- name: Ansible playbook to copy files
+  hosts: testgroup
+  become: yes
+  tasks:
+    - name: Copy file to worker node
+      copy:
+        src: /home/edureka/ansible/test.txt
+        dest: /tmp/test/
+        owner: joe
+        mode: '777'
+
+# Make sure test.txt exists on the Ansible master at /home/edureka/ansible/test.txt

@@ -1,0 +1,7 @@
+---
+# Runs the individual playbooks in order. All four files must be in the same folder.
+# Run with: ansible-playbook multi-playbook.yaml --extra-vars "username=vir"
+- import_playbook: package-playbook.yaml
+- import_playbook: copy-playbook.yaml
+- import_playbook: user-add-playbook.yaml
+- import_playbook: variable-useradd.yaml

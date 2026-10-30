@@ -1,0 +1,11 @@
+---
+- name: Ansible playbook to add user via variables
+  hosts: kslave1
+  become: yes
+  tasks:
+    - name: Adding user to worker via variables
+      ansible.builtin.user:
+        name: "{{ username }}"
+        state: present
+
+# Run with: ansible-playbook variable-useradd.yaml --extra-vars "username=vir"

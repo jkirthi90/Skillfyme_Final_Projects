@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: three-tier
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: backend}
+  template:
+    metadata:
+      labels: {app: backend}
+    spec:
+      containers:
+      - name: backend
+        image: three-tier-backend:1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DATABASE_URL
+          value: postgresql://todo:todo123@database:5432/todo
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet: {path: /health, port: 8000}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: three-tier
+spec:
+  selector: {app: backend}
+  ports:
+  - port: 8000
+    targetPort: 8000

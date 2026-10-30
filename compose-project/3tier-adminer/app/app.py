@@ -8,10 +8,10 @@ app = Flask(__name__)
 def home():
 
     conn = mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME")
+        host=os.getenv("DB_HOST","mysql"),
+        user=os.getenv("DB_USER","admin"),
+        password=os.getenv("DB_PASSWORD","password"),
+        database=os.getenv("DB_NAME","demo")
     )
 
     cursor = conn.cursor()
@@ -22,7 +22,7 @@ def home():
     conn.close()
 
     return f"""
-    <h1>3 Tier Docker Compose Demo with frontend --> backend --> db</h1>
+    <h1>3 Tier Docker Compose Demo</h1>
     <h2>{result[0]}</h2>
     """
 

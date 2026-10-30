@@ -14,7 +14,7 @@ Deployed the LearnSphere platform on a kubeadm cluster, using images built by th
 |----------|---------|-------------------------|
 | `kustomization.yaml` lists `secrets.yaml` | File doesn't exist – `kubectl apply -k` fails | Secret created with `kubectl create secret` (step 4) |
 | No MongoDB, PostgreSQL or Redis | Every service crash-loops | StatefulSets for MongoDB and PostgreSQL, Deployment for Redis, seeded from the init scripts |
-| Images `ghcr.io/skillfyme/...` | Images don't exist | `ghcr.io/jkirthi90/...` from my CI |
+| Images `ghcr.io/skillfyme/...` | Images don't exist | `ghcr.io/jkirthi90/...` from my CI, pulled with a registry secret |
 | One `DATABASE_URL` for all services | Python needs `postgresql+asyncpg://`, Go needs `?sslmode=disable` | Separate URL per service |
 | 2 replicas, 256Mi requests | Doesn't fit 2 × 4 GB nodes | 1 replica, 64Mi requests |
 | Ingress with `skillfyme.com` + TLS | Domain not owned | NodePort 30300 (UI), 30400 (API) |
@@ -40,7 +40,7 @@ git push --force origin main                    # triggers CI
 - Build Docker Images: 10 parallel jobs, push to `ghcr.io/jkirthi90/<service>:latest`
 - Trivy security scan
 
-**4. Make the packages public** – GitHub profile → **Packages** → each package → **Package settings → Change visibility → Public**, so the cluster can pull without credentials.
+**4. Images stay private** – the cluster pulls them with a registry secret (step 4 below), using a GitHub token with only `read:packages`.
 
 ## Steps
 
@@ -64,6 +64,12 @@ cd Skillfyme_Final_Projects/10-capstone-project
 **4. Namespace, secret and seed scripts**
 ```bash
 kubectl create namespace skillfyme
+
+# pull private images from GHCR (token: GitHub → Developer settings → Tokens (classic) → read:packages)
+kubectl -n skillfyme create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io --docker-username=jkirthi90 --docker-password=<token>
+kubectl -n skillfyme patch serviceaccount default \
+  -p '{"imagePullSecrets":[{"name":"ghcr-secret"}]}'
 
 kubectl -n skillfyme create secret generic skillfyme-secrets \
   --from-literal=DB_USER=skillfyme \
@@ -101,6 +107,6 @@ UI: `http://<node-public-ip>:30300` (open 30300 and 30400 in the security group,
 ## Troubleshooting
 | Status | Check |
 |--------|-------|
-| `ImagePullBackOff` | GHCR packages must be **Public**; image name matches `kubectl describe pod` |
+| `ImagePullBackOff` | `ghcr-secret` exists and is on the default ServiceAccount; token has `read:packages`; image name matches `kubectl describe pod` |
 | `Pending` | `kubectl describe pod` – memory, or PVC not bound (`kubectl get pvc`) |
 | `CrashLoopBackOff` | `kubectl logs <pod> -n skillfyme` – usually the database isn't ready yet; it recovers on restart |

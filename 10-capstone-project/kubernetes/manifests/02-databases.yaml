@@ -45,6 +45,7 @@ spec:
               command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 10
       volumes:
         - name: init
           configMap:
@@ -115,6 +116,7 @@ spec:
               command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d skillfyme"]
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 10
       volumes:
         - name: init
           configMap:
@@ -168,6 +170,7 @@ spec:
               command: ["redis-cli", "ping"]
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 10
 ---
 apiVersion: v1
 kind: Service

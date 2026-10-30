@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skillfyme-config
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  COURSE_CATALOG_URL: "http://course-catalog:9101"
+  LEARNING_PATH_URL: "http://learning-path:9102"
+  ASSESSMENT_ENGINE_URL: "http://assessment-engine:9103"
+  LIVE_SESSION_URL: "http://live-session:9104"
+  CREDITS_CURRENCY_URL: "http://credits-currency:9105"
+  ENROLLMENT_URL: "http://enrollment:9106"
+  PAYMENT_URL: "http://payment:9107"
+  NOTIFICATION_URL: "http://notification:9108"
+  REDIS_URL: "redis://redis:6379"

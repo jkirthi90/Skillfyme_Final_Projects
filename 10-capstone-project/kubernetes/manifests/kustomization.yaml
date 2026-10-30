@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: skillfyme
+resources:
+  - 00-namespace.yaml
+  - 01-configmap.yaml
+  - 02-databases.yaml
+  - 03-microservices.yaml
+  - 04-ui.yaml

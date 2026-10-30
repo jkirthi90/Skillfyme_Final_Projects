@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>3-Tier Todo</title>
+<style>
+body{font-family:Arial;max-width:700px;margin:40px auto}
+input{padding:10px}button{padding:8px;margin:4px}li{margin:10px 0}.done{text-decoration:line-through}
+</style>
+</head>
+<body>
+<h1>3-Tier Todo</h1>
+<p id="status">Checking backend...</p>
+<form id="form"><input id="title" placeholder="New todo" required><button>Add</button></form>
+<ul id="list"></ul>
+<script>
+const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
+async function load(){
+ const h=await fetch('/api/health'); const hd=await h.json();
+ document.getElementById('status').textContent=`Backend: ${hd.status} | DB: ${hd.database}`;
+ const r=await fetch('/api/todos'); const todos=await r.json();
+ document.getElementById('list').innerHTML=todos.map(t=>`
+ <li class="${t.completed?'done':''}">
+ <input type="checkbox" ${t.completed?'checked':''} onchange="toggle(${t.id},this.checked)">
+ ${esc(t.title)} <button onclick="removeTodo(${t.id})">Delete</button></li>`).join('');
+}
+document.getElementById('form').onsubmit=async e=>{
+ e.preventDefault();
+ await fetch('/api/todos',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({title:document.getElementById('title').value})});
+ document.getElementById('title').value=''; load();
+};
+async function toggle(id,completed){await fetch('/api/todos/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed})});load()}
+async function removeTodo(id){await fetch('/api/todos/'+id,{method:'DELETE'});load()}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+// Deploys the 3-tier Flask + MySQL app (04-docker/projects/3tier-flask-mysql)
+// with Docker Compose on a Jenkins agent labelled "worker".
+pipeline {
+    agent {
+        node {
+            label 'worker'
+        }
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git url: 'https://github.com/jkirthi90/Skillfyme_Final_Projects.git', branch: 'main'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'cd 04-docker/projects/3tier-flask-mysql && docker compose down && docker compose up -d'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'docker ps'
+                sh 'bash 02-jenkins/scripts/smoke-test.sh'
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+---
+# Creates an IAM user in AWS from the Ansible master.
+# Prerequisite on the master: sudo snap install aws-cli --classic && aws configure
+- name: Ansible playbook to create IAM user in AWS cloud
+  hosts: localhost        # runs on the master
+  connection: local       # no SSH needed
+
+  tasks:
+    - name: Create IAM user
+      amazon.aws.iam_user:
+        name: ansible-user
+        state: present
+        region: us-east-1
+      register: iam_user_result
+
+    - name: Display IAM user information
+      ansible.builtin.debug:
+        var: iam_user_result

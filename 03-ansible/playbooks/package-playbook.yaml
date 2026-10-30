@@ -1,0 +1,12 @@
+---
+- name: Ansible playbook to install apache2 package
+  hosts: kslave1
+  become: yes
+  tasks:
+    - name: Install apache2 package
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes   # runs apt-get update before installing apache2
+
+# Check on the target machine: systemctl status apache2.service

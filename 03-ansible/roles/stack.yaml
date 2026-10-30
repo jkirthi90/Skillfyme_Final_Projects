@@ -1,0 +1,7 @@
+---
+# Applies both roles to every host. Run with: ansible-playbook stack.yaml
+- hosts: all
+  become: yes
+  roles:
+    - prerequisites
+    - apache2

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-k8s-security-analyzer
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: ai-k8s-security-analyzer}
+  template:
+    metadata: {labels: {app: ai-k8s-security-analyzer}}
+    spec:
+      serviceAccountName: ai-k8s-security-analyzer
+      containers:
+      - name: analyzer
+        image: ai-k8s-security-analyzer:1.0
+        imagePullPolicy: IfNotPresent
+        ports: [{containerPort: 8000}]
+        env:
+        - {name: OLLAMA_URL, value: "http://172.31.20.63:11434"}
+        - {name: OLLAMA_MODEL, value: "qwen2.5:1.5b"}
+        readinessProbe: {httpGet: {path: /health, port: 8000}, initialDelaySeconds: 10, periodSeconds: 10}
+        livenessProbe: {httpGet: {path: /health, port: 8000}, initialDelaySeconds: 20, periodSeconds: 20}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-k8s-security-analyzer
+  namespace: default
+spec:
+  selector: {app: ai-k8s-security-analyzer}
+  ports: [{port: 80, targetPort: 8000}]
+  type: ClusterIP

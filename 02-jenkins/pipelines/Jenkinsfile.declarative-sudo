@@ -1,0 +1,24 @@
+// Declarative pipeline variant with an extra stage: build, unit tests, run the JAR.
+// Assumes the Maven project is already cloned into the workspace as repo8/my-app.
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh 'pwd'
+                sh 'cd repo8/my-app && sudo mvn clean && sudo mvn package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'cd repo8/my-app && sudo mvn test'
+                sh 'cd repo8/my-app && sudo java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+            }
+        }
+        stage('Test 2') {
+            steps {
+                sh 'echo "test2 phase running"'
+            }
+        }
+    }
+}

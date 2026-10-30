@@ -55,17 +55,18 @@ kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisione
 kubectl get storageclass          # local-path
 ```
 
-**3. Get the manifests**
+**3. Clone the project** (private – password is a classic token with `repo` + `read:packages`)
 ```bash
-git clone https://github.com/jkirthi90/Skillfyme_Final_Projects.git
-cd Skillfyme_Final_Projects/10-capstone-project
+git clone https://github.com/jkirthi90/Project-1-LearnSphere_Skillfyme.git
+cd Project-1-LearnSphere_Skillfyme
 ```
+The manifests in [manifests/](./manifests) are in the project repo as `k8s-lite/`.
 
-**4. Namespace, secret and seed scripts**
+**4. Namespace, registry secret, app secret, seed scripts**
 ```bash
 kubectl create namespace skillfyme
 
-# pull private images from GHCR (token: GitHub → Developer settings → Tokens (classic) → read:packages)
+# pull private images from GHCR
 kubectl -n skillfyme create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io --docker-username=jkirthi90 --docker-password=<token>
 kubectl -n skillfyme patch serviceaccount default \
@@ -84,14 +85,13 @@ kubectl -n skillfyme create secret generic skillfyme-secrets \
   --from-literal=SMTP_USER=placeholder --from-literal=SMTP_PASS=placeholder \
   --from-literal=FROM_EMAIL=noreply@skillfyme.com
 
-kubectl -n skillfyme create configmap postgres-init --from-file=init.sql=docker-compose/postgres-init.sql
-kubectl -n skillfyme create configmap mongo-init --from-file=mongo-init.js=kubernetes/mongo-init.js
+kubectl -n skillfyme create configmap postgres-init --from-file=init.sql=scripts/postgres-init.sql
+kubectl -n skillfyme create configmap mongo-init --from-file=mongo-init.js=scripts/mongo-init.js
 ```
-Seed scripts: corrected Postgres script from [docker-compose/](../docker-compose), MongoDB script [mongo-init.js](./mongo-init.js) copied from the project.
 
 **5. Deploy**
 ```bash
-kubectl apply -k kubernetes/manifests
+kubectl apply -k k8s-lite
 kubectl get pods -n skillfyme -w          # wait until all are Running / 1/1
 ```
 

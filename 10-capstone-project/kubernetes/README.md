@@ -34,6 +34,47 @@ Tried the original `k8s/overlays/dev` first, fixing each error locally to reach 
 | 3 | After switching to my CI images | ❌ Postgres/Mongo services `CrashLoopBackOff` – `kubectl get svc` shows no `postgres`, `mongodb` or `redis` |
 | 4 | learning-path logs | ❌ `The loaded 'psycopg2' is not async` – shared `DATABASE_URL` has the wrong format for the Python service |
 
+**Commands used to test the original manifests**
+```bash
+git clone https://github.com/jkirthi90/Project-1-LearnSphere_Skillfyme.git && cd Project-1-LearnSphere_Skillfyme
+
+# Break 1
+kubectl apply -k k8s/overlays/dev
+
+# Break 1b – local workaround only
+sed -i '/secrets.yaml/d' k8s/base/kustomization.yaml
+kubectl create namespace skillfyme-dev
+kubectl -n skillfyme-dev create secret generic skillfyme-secrets \
+  --from-literal=MONGODB_URI='mongodb://skillfyme:skillfyme_secret@mongodb:27017/skillfyme?authSource=admin' \
+  --from-literal=DATABASE_URL='postgresql://skillfyme:skillfyme_secret@postgres:5432/skillfyme' \
+  --from-literal=JWT_SECRET=test --from-literal=STRIPE_SECRET_KEY=x
+kubectl apply -k k8s/overlays/dev
+kubectl kustomize k8s/overlays/dev 2>&1 | grep -v Warning
+
+# Break 2
+sed -i 's/namespace: skillfyme-dev/namespace: skillfyme/' k8s/overlays/dev/replicas-patch.yaml
+kubectl apply -k k8s/overlays/dev
+kubectl get pods -n skillfyme-dev
+kubectl describe pod -n skillfyme-dev -l app=course-catalog | tail -8
+
+# Break 3 / 4 – switch to my CI images
+kubectl -n skillfyme-dev create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io --docker-username=jkirthi90 --docker-password=<token>
+kubectl -n skillfyme-dev patch serviceaccount default -p '{"imagePullSecrets":[{"name":"ghcr-secret"}]}'
+for d in $(kubectl -n skillfyme-dev get deploy -o name); do
+  n=${d#deployment.apps/}
+  kubectl -n skillfyme-dev set image $d $n=ghcr.io/jkirthi90/$n:latest
+done
+kubectl get pods -n skillfyme-dev
+kubectl logs -n skillfyme-dev deploy/learning-path --tail 8
+kubectl logs -n skillfyme-dev deploy/course-catalog --tail 8
+kubectl get svc -n skillfyme-dev
+
+# clean up
+kubectl delete namespace skillfyme-dev
+git checkout k8s/
+```
+
 ## Issues hit while deploying k8s-lite
 
 | Issue | Cause | Fix |
@@ -41,6 +82,59 @@ Tried the original `k8s/overlays/dev` first, fixing each error locally to reach 
 | Pods evicted (`ContainerStatusUnknown`), `postgres-0`/`mongodb-0` Pending | Worker launched with the default 8 GB disk; images filled it to 85% → `DiskPressure` taint. Database volumes are bound to the worker, so they couldn't schedule | Resized the EBS volume to 30 GB online: `growpart` + `resize2fs` → 17% used |
 | `mongodb-0` stuck at 0/1, course-catalog and live-session crash-looping | Readiness probe runs `mongosh`, which takes ~2.2 s on a t3.medium; default probe timeout is 1 s | `timeoutSeconds: 10` on the database probes. Deleted `mongodb-0` so the StatefulSet recreated it (it won't replace a not-ready pod during a rollout) |
 | All pods on `k8s-worker01` | Image locality and free resources; databases bound there by local-path volumes. Master is untainted | No change needed – worker has ~2.3 GB free |
+
+**Commands used to fix them**
+```bash
+# Diagnose
+kubectl describe pod postgres-0 -n skillfyme | tail -8
+kubectl get pvc,storageclass -n skillfyme
+kubectl describe nodes | grep -iE "^Name:|Pressure|Taints"
+df -h / && lsblk                                    # on the worker
+
+# Disk: EC2 → Volumes → Modify volume → 30 GiB, then on the worker
+sudo growpart /dev/nvme0n1 1
+sudo resize2fs /dev/nvme0n1p1
+df -h /
+
+# Clear evicted pods and restart
+kubectl delete pods -n skillfyme --field-selector=status.phase=Failed
+kubectl delete pods -n local-path-storage --field-selector=status.phase=Failed
+kubectl rollout restart deployment -n skillfyme
+
+# MongoDB probe timeout
+kubectl describe pod mongodb-0 -n skillfyme | tail -6
+time kubectl exec mongodb-0 -n skillfyme -- mongosh --quiet --eval "db.adminCommand('ping')"
+kubectl -n skillfyme patch statefulset mongodb --type=json \
+  -p='[{"op":"add","path":"/spec/template/spec/containers/0/readinessProbe/timeoutSeconds","value":10}]'
+kubectl delete pod mongodb-0 -n skillfyme
+kubectl rollout restart deployment course-catalog live-session -n skillfyme
+
+# Scheduling check
+kubectl describe node k8s-master | grep -i taints
+```
+
+## Build the cluster (kubeadm)
+3 × t3.medium, 30 GB gp3, Standard CPU credits. Full steps: [05-kubernetes/cluster-setup/kubeadm.md](../../05-kubernetes/cluster-setup/kubeadm.md).
+```bash
+# all nodes: hostname, /etc/hosts, swap off, kernel modules, sysctl, containerd, kubeadm/kubelet/kubectl
+sudo hostnamectl set-hostname k8s-master          # k8s-worker01 / k8s-worker02 on the workers
+sudo swapoff -a && sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+# master
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16 | tee ~/kubeadm-init.log
+mkdir -p $HOME/.kube
+sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.2/manifests/calico.yaml
+sudo kubeadm token create --print-join-command
+
+# each worker
+sudo kubeadm join <master-ip>:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
+
+# master
+kubectl get nodes
+```
+If `admin.conf` is missing, `kubeadm init` didn't finish: `sudo kubeadm reset -f`, then run init again.
 
 ## Build the images with CI (GitHub Actions)
 
@@ -119,11 +213,19 @@ kubectl get pods -n skillfyme -w          # wait until all are Running / 1/1
 
 **6. Verify**
 ```bash
-kubectl get all,pvc -n skillfyme
-curl localhost:30400/health
-curl localhost:30400/api/courses | head -c 200
-kubectl -n skillfyme exec postgres-0 -- psql -U skillfyme -d skillfyme -tAc 'SELECT count(*) FROM learning_paths;'
+kubectl get pods,svc,pvc -n skillfyme -o wide
+curl -s localhost:30400/health; echo
+curl -s localhost:30400/api/courses | head -c 200; echo
+curl -s localhost:30400/api/learning-paths | grep -o '"slug"' | wc -l
+kubectl -n skillfyme exec postgres-0 -- psql -U skillfyme -d skillfyme \
+  -tAc 'SELECT count(*) FROM learning_paths;' -tAc 'SELECT count(*) FROM assessments;'
+TOKEN=$(curl -s -X POST localhost:30400/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"test@demo.com","password":"password123"}' | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+echo ${TOKEN:0:25}...
+curl -s localhost:30400/api/cart -H "Authorization: Bearer $TOKEN"; echo
+curl -s -o /dev/null -w "%{http_code}\n" localhost:30400/api/cart
 ```
+Ports 30300/30400 were later replaced by the [Gateway API](../gateway-api).
 UI: `http://<node-public-ip>:30300` (open 30300 and 30400 in the security group, from your IP only)
 
 ## Troubleshooting

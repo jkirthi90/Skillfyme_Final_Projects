@@ -1,3 +1,28 @@
+> ## My deployment work
+> Project repo: [Project-1-LearnSphere_Skillfyme](https://github.com/jkirthi90/Project-1-LearnSphere_Skillfyme) (private)
+>
+> ```
+> git push ─► GitHub Actions CI (lint, test, build 10 images) ─► GHCR
+>                                                                 │
+> k8s-lite/ on main ─► Argo CD (auto-sync, self-heal) ─► kubeadm cluster (3 nodes)
+>                                                                 │
+> browser ─► Gateway API (/api → backend, / → frontend) ─► LearnSphere services
+>                                                                 │
+>                              Prometheus + Grafana ◄─ nodes, pods, cluster
+> ```
+>
+> | Step | What | Notes |
+> |------|------|-------|
+> | 1 | [Docker Compose](./docker-compose) | Single EC2, fixed the Postgres seed script |
+> | 2 | [Kubernetes](./kubernetes) | Where the original manifests break, fixed `k8s-lite` manifests, CI-built images |
+> | 3 | [Argo CD](./argocd) | GitOps deployment with self-heal |
+> | 4 | [Gateway API](./gateway-api) | Single entry point with path routing |
+> | 5 | [Monitoring](./monitoring) | Prometheus + Grafana with kube-prometheus-stack |
+>
+> Below is the original project README, unchanged.
+
+---
+
 # LearnSphere — Enterprise Learning Platform
 
 > A polyglot microservices platform for enterprise-grade online learning, skill development, and workforce upskilling — built on cloud-native principles.

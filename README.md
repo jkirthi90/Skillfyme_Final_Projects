@@ -13,7 +13,7 @@ My hands-on work from the DevOps program (Feb–Oct 2026).
 | 07 | [Monitoring](./07-monitoring) | Prometheus + Grafana with Helm |
 | 08 | [Argo CD](./08-argocd) | GitOps deploy of nginx |
 | 09 | [AI DevOps projects](./09-ai-devops-projects) | K8s log analyzer, K8s security analyzer |
-| 10 | [Capstone project](./10-capstone-project) | LearnSphere microservices – [Docker Compose deployment](./10-capstone-project/docker-compose) |
+| 10 | [Capstone project](./10-capstone-project) | LearnSphere microservices – [Docker Compose](./10-capstone-project/docker-compose) and [Kubernetes](./10-capstone-project/kubernetes) deployments, CI-built images |
 
 Each folder has a short `README.md` and a `commands.md`.
 

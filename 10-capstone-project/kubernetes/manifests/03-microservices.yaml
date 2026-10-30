@@ -1,0 +1,424 @@
+# The 8 backend microservices. Changes from the original k8s/base/microservices.yaml:
+# - images from my GHCR (built by the repo's CI), 1 replica each, smaller memory requests
+# - DATABASE_URL per service: Python needs postgresql+asyncpg://, Go needs ?sslmode=disable
+# - readiness probes so traffic waits until each service is up
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-catalog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: course-catalog
+  template:
+    metadata:
+      labels:
+        app: course-catalog
+    spec:
+      containers:
+        - name: course-catalog
+          image: ghcr.io/jkirthi90/course-catalog:latest
+          ports:
+            - containerPort: 9101
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9101"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: MONGODB_URI }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9101 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9101 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: course-catalog
+spec:
+  selector:
+    app: course-catalog
+  ports:
+    - port: 9101
+      targetPort: 9101
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-path
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learning-path
+  template:
+    metadata:
+      labels:
+        app: learning-path
+    spec:
+      containers:
+        - name: learning-path
+          image: ghcr.io/jkirthi90/learning-path:latest
+          ports:
+            - containerPort: 9102
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9102"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: DATABASE_URL_PY }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health/, port: 9102 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/, port: 9102 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: learning-path
+spec:
+  selector:
+    app: learning-path
+  ports:
+    - port: 9102
+      targetPort: 9102
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assessment-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assessment-engine
+  template:
+    metadata:
+      labels:
+        app: assessment-engine
+    spec:
+      containers:
+        - name: assessment-engine
+          image: ghcr.io/jkirthi90/assessment-engine:latest
+          ports:
+            - containerPort: 9103
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9103"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: DATABASE_URL_GO }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9103 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9103 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assessment-engine
+spec:
+  selector:
+    app: assessment-engine
+  ports:
+    - port: 9103
+      targetPort: 9103
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-session
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: live-session
+  template:
+    metadata:
+      labels:
+        app: live-session
+    spec:
+      containers:
+        - name: live-session
+          image: ghcr.io/jkirthi90/live-session:latest
+          ports:
+            - containerPort: 9104
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9104"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: MONGODB_URI }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9104 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9104 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-session
+spec:
+  selector:
+    app: live-session
+  ports:
+    - port: 9104
+      targetPort: 9104
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credits-currency
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: credits-currency
+  template:
+    metadata:
+      labels:
+        app: credits-currency
+    spec:
+      containers:
+        - name: credits-currency
+          image: ghcr.io/jkirthi90/credits-currency:latest
+          ports:
+            - containerPort: 9105
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9105"
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9105 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9105 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: credits-currency
+spec:
+  selector:
+    app: credits-currency
+  ports:
+    - port: 9105
+      targetPort: 9105
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enrollment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enrollment
+  template:
+    metadata:
+      labels:
+        app: enrollment
+    spec:
+      containers:
+        - name: enrollment
+          image: ghcr.io/jkirthi90/enrollment:latest
+          ports:
+            - containerPort: 9106
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9106"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: DATABASE_URL }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9106 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9106 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enrollment
+spec:
+  selector:
+    app: enrollment
+  ports:
+    - port: 9106
+      targetPort: 9106
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+        - name: payment
+          image: ghcr.io/jkirthi90/payment:latest
+          ports:
+            - containerPort: 9107
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9107"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: DATABASE_URL }
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: STRIPE_SECRET_KEY }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9107 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9107 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+spec:
+  selector:
+    app: payment
+  ports:
+    - port: 9107
+      targetPort: 9107
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+    spec:
+      containers:
+        - name: notification
+          image: ghcr.io/jkirthi90/notification:latest
+          ports:
+            - containerPort: 9108
+          envFrom:
+            - configMapRef:
+                name: skillfyme-config
+          env:
+            - name: PORT
+              value: "9108"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: SMTP_HOST }
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: SMTP_PORT }
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: SMTP_USER }
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: SMTP_PASS }
+            - name: FROM_EMAIL
+              valueFrom:
+                secretKeyRef: { name: skillfyme-secrets, key: FROM_EMAIL }
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "300m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 9108 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9108 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification
+spec:
+  selector:
+    app: notification
+  ports:
+    - port: 9108
+      targetPort: 9108

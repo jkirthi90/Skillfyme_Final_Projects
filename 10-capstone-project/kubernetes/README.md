@@ -20,6 +20,28 @@ Deployed the LearnSphere platform on a kubeadm cluster, using images built by th
 | Ingress with `skillfyme.com` + TLS | Domain not owned | NodePort 30300 (UI), 30400 (API) |
 | No StorageClass | PVCs stay Pending on kubeadm | local-path provisioner |
 
+## Build the images with CI (GitHub Actions)
+
+The project's `k8s/` folder only has manifests – the images they point to don't exist, so they're built by the repo's CI pipeline (`.github/workflows/ci.yml`).
+
+**1. Enable Actions** – repo → **Actions** tab → enable workflows.
+Pushes made before Actions is enabled don't trigger a run, so push again afterwards.
+
+**2. Set Git identity on the VM and push to `main`**
+```bash
+git config --global user.name "jkirthi90"
+git config --global user.email "<github-email>"
+git commit --amend --reset-author --no-edit     # commit had author "Ubuntu"
+git push --force origin main                    # triggers CI
+```
+
+**3. CI pipeline runs** – *CI — Build, Test & Lint*
+- Lint & test: Node.js (8 services), Python (learning-path), Go (assessment-engine)
+- Build Docker Images: 10 parallel jobs, push to `ghcr.io/jkirthi90/<service>:latest`
+- Trivy security scan
+
+**4. Make the packages public** – GitHub profile → **Packages** → each package → **Package settings → Change visibility → Public**, so the cluster can pull without credentials.
+
 ## Steps
 
 **1. Allow pods on the master too** (2 small nodes)
